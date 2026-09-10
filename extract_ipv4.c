@@ -117,6 +117,11 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
                         }
                     }
                 }
+                else if (str[pos] == '.') 
+                {
+                    success = 0;
+                    break;
+                }
 
                 if (success) {
                     unsigned long address =
@@ -156,7 +161,7 @@ int main(void) {
         }
 
         if (strcmp(input, "END") == 0) {
-            printf("Program terminated\n");
+            printf("Program terminated.\n");
             break;
         }
 
@@ -168,11 +173,19 @@ int main(void) {
             unsigned int b = (unsigned int)((address >> 16) & 0xFF);
             unsigned int c = (unsigned int)((address >> 8) & 0xFF);
             unsigned int d = (unsigned int)(address & 0xFF);
-
-            printf("Extracted IPv4 address: %u.%u.%u.%u (decimal value: %lu, port: %d)\n",
+            
+            if (port != -1)
+            {
+                printf("Extracted IPv4 address: %u.%u.%u.%u (decimal value: %lu, port: %d)\n",
                    a, b, c, d, address, port);
+            }
+            else {
+                printf("Extracted IPv4 address: %u.%u.%u.%u (decimal value: %lu, port: none)\n",
+                   a, b, c, d, address);
+            }
+
         } else {
-            printf("No valid IPv4 address found.\n");
+            printf("Invalid input: no valid IPv4 address found.\n");
         }
     }
 
