@@ -44,12 +44,16 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
     int i = 0;
 
     while (i < len) {
-        /* Only attempt a match at the START of a digit run. If the
-         * previous character is also a digit, starting here would mean
-         * slicing into the middle of a longer number, which can never
-         * be a valid octet. */
-        int prevIsDigit = (i > 0) && isdigit((unsigned char)str[i - 1]);
-        if (isdigit((unsigned char)str[i]) && !prevIsDigit) {
+        /* Only attempt a match at the START of a dotted-number chain.
+         * If the previous character is a digit OR a '.', starting here
+         * would mean slicing into the middle of a longer chain of
+         * digits/dots (e.g. treating "2.3.4.5" inside "1.2.3.4.5" as its
+         * own address). A chain of digits-and-dots is either a fully
+         * valid 4-octet address or it is rejected in its entirety -- we
+         * never salvage a shorter valid address out of a malformed one. */
+        int prevIsChainChar = (i > 0) &&
+            (isdigit((unsigned char)str[i - 1]) || str[i - 1] == '.');
+        if (isdigit((unsigned char)str[i]) && !prevIsChainChar) {
             int pos = i;
             int octets[4];
             int success = 1;
@@ -117,8 +121,10 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
                         }
                     }
                 }
-                else if (str[pos] == '.') 
+                else if (str[pos] == '.')
                 {
+                    /* A dot right after the 4th octet means there is a
+                     * 5th segment (e.g. "1.2.3.4.5") -- reject it. */
                     success = 0;
                 }
 
@@ -134,6 +140,19 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
                     return 1;
                 }
             }
+
+            /* This whole dotted-number chain failed to produce a valid
+             * address (too few/too many segments, out-of-range octet,
+             * bad leading zero, etc). Skip past every remaining digit
+             * and '.' in the chain so we don't re-enter it partway
+             * through and "salvage" a shorter address out of it. */
+            int skip = i;
+            while (skip < len &&
+                   (isdigit((unsigned char)str[skip]) || str[skip] == '.')) {
+                skip++;
+            }
+            i = skip;
+            continue;
         }
 
         i++;
