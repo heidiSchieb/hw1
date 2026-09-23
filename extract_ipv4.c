@@ -53,14 +53,17 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
          * never salvage a shorter valid address out of a malformed one. */
         int prevIsChainChar = (i > 0) &&
             (isdigit((unsigned char)str[i - 1]) || str[i - 1] == '.');
+
         if (isdigit((unsigned char)str[i]) && !prevIsChainChar) {
             int pos = i;
             int octets[4];
             int success = 1;
-
+            
+            // atempt to extract an IPv4 address
             for (int o = 0; o < 4 && success; o++) {
                 int runLen = getDigitRun(str, pos);
 
+                // runLen out of range
                 if (runLen < 1 || runLen > 3) {
                     success = 0;
                     break;
@@ -76,6 +79,8 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
                 for (int k = 0; k < runLen; k++) {
                     value = value * 10 + (str[pos + k] - '0');
                 }
+
+                // if value is too large, break
                 if (value > 255) {
                     success = 0;
                     break;
@@ -84,6 +89,7 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
                 octets[o] = value;
                 pos += runLen;
 
+                // break if there are not four octets 
                 if (o < 3) {
                     /* need a '.' followed immediately by another digit */
                     if (str[pos] != '.') {
@@ -98,13 +104,16 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
                 }
             }
 
+            // if 4 in range octets were retrieved then the current IPv4 address is currently a success
             if (success) {
                 int port = -1;
 
+                // check if there is a valid port
                 if (str[pos] == ':') {
                     int afterColon = pos + 1;
                     int runLen = getDigitRun(str, afterColon);
 
+                    // check if the port number is valid
                     if (runLen < 1 || runLen > 5) {
                         success = 0;
                     } else if (runLen > 1 && str[afterColon] == '0') {
@@ -128,6 +137,7 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
                     success = 0;
                 }
 
+                // if there is a success set outAdress and outPort then return
                 if (success) {
                     unsigned long address =
                         ((unsigned long)octets[0] << 24) |
@@ -165,6 +175,7 @@ int extractIPv4(const char* str, unsigned long* outAddress, int* outPort) {
 /*                          TEST HARNESS                               */
 /* ------------------------------------------------------------------ */
 
+// TestCase structure
 typedef struct {
     const char* description;
     const char* input;
@@ -173,11 +184,13 @@ typedef struct {
     int expectedPort;              /* only checked if expectedReturn == 1 */
 } TestCase;
 
+// comptues the address in decimal number
 static unsigned long makeAddress(int a, int b, int c, int d) {
     return ((unsigned long)a << 24) | ((unsigned long)b << 16) |
            ((unsigned long)c << 8)  |  (unsigned long)d;
 }
 
+// function that runs tests
 void runTests(void) {
     TestCase tests[] = {
         /* 1. Invalid octet range */
@@ -238,16 +251,19 @@ void runTests(void) {
     int numTests = (int)(sizeof(tests) / sizeof(tests[0]));
     int passed = 0;
 
+    // tests all the test cases intialized above
     for (int t = 0; t < numTests; t++) {
         unsigned long address = 0;
         int port = 0;
         int result = extractIPv4(tests[t].input, &address, &port);
 
+        // checks if the results from extractIPv4 mathc the expected return output
         int ok = (result == tests[t].expectedReturn);
         if (ok && result == 1) {
             ok = (address == tests[t].expectedAddress) && (port == tests[t].expectedPort);
         }
 
+        // display the results of the test 
         printf("[%s] %s\n", ok ? "PASS" : "FAIL", tests[t].description);
         printf("       input: \"%s\"\n", tests[t].input);
         if (!ok) {
@@ -268,7 +284,9 @@ void runTests(void) {
     printf("\n%d / %d tests passed.\n", passed, numTests);
 }
 
+// main function
 int main(int argc, char* argv[]) {
+    // if the flag "--test" is provided then run the tests 
     if (argc > 1 && strcmp(argv[1], "--test") == 0) {
         runTests();
         return 0;
@@ -276,6 +294,7 @@ int main(int argc, char* argv[]) {
 
     char input[MAX_INPUT];
 
+    // sentinel loop to try and extract an IPv4 address from a user's input
     while (1) {
         printf("Enter a string (or 'END' to quit): ");
         fflush(stdout);
@@ -298,6 +317,7 @@ int main(int argc, char* argv[]) {
         unsigned long address;
         int port;
 
+        // display the IPv4 address if it was able to be extracted and an invalid input message otherwise
         if (extractIPv4(input, &address, &port)) {
             unsigned int a = (unsigned int)((address >> 24) & 0xFF);
             unsigned int b = (unsigned int)((address >> 16) & 0xFF);
