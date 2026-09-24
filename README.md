@@ -1,6 +1,6 @@
 # EECS 581 HW 1
 ## Assignment Description
-The assignment contains an extract_ipv4.c file and a docs folder that contains the AI Disclosure document.
+The assignment contains an extract_ipv4.c file located within the src folder and an AI Disclosure document located in the docs folder.
 ## Initial Setup
 1. Clone the repository
 2. Open the repository folder in VS Code or any other IDE.
